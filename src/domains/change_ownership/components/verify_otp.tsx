@@ -1,185 +1,144 @@
-import { useNavigate, useLocation } from "react-router-dom";
-import {
-    Button,
-    FieldInput,
-    TypographyH5,
-    TypographySmall,
-} from "../../../shared/components";
-import { IoIosArrowBack } from "react-icons/io";
-import { Formik, Form } from "formik";
-import { toast } from "sonner";
-import * as Yup from "yup";
-import { useVerifyTransferOtpMutation } from "../../certificate_request/api";
+import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ChevronLeft, Phone, Mail } from 'lucide-react';
+import { toast } from 'sonner';
+import { OtpInput, FormHelpText, Stepper, Button } from '@/shared/components/ui';
+import { useVerifyTransferOtpMutation } from '../../certificate_request/api';
 
-interface OtpFormValues {
-    otp: string;
-}
-
-const otpSchema = Yup.object().shape({
-    otp: Yup.string()
-        .required("OTP is required")
-        .length(6, "OTP must be exactly 6 digits")
-        .matches(/^\d+$/, "OTP must contain only numbers"),
-});
+const STEPS = [
+  { label: 'Service' },
+  { label: 'Cert No.' },
+  { label: 'Vehicle' },
+  { label: 'New Owner' },
+  { label: 'Review' },
+  { label: 'OTP' },
+];
 
 export default function VerifyOtp() {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const { requestId, otpMethod, currentOwner } = location.state || {};
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { requestId, otpMethod, currentOwner } = location.state || {};
 
-    const [verifyTransferOtp, { isLoading }] = useVerifyTransferOtpMutation();
+  const [otp, setOtp] = useState('');
+  const [error, setError] = useState('');
+  const [verifyTransferOtp, { isLoading }] = useVerifyTransferOtpMutation();
 
-    console.log("Verify OTP - Request ID:", requestId);
-    console.log("Verify OTP - OTP Method:", otpMethod);
-    console.log("Verify OTP - Location State:", location.state);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (otp.length !== 6) { setError('Please enter all 6 digits.'); return; }
+    setError('');
 
-    const handleGoBack = () => {
-        navigate("/app/change-ownership/vehicle-information");
-    };
+    if (!requestId) {
+      toast.error('Request ID not found. Please start from the beginning.');
+      navigate('/app/change-ownership/enter-cert-no');
+      return;
+    }
 
-    const handleSubmit = async (values: OtpFormValues) => {
-        if (!requestId) {
-            toast.error("Request ID not found. Please start from the beginning.");
-            navigate("/app/change-ownership/enter-cert-no");
-            return;
-        }
+    try {
+      const result = await verifyTransferOtp({ requestId, data: { request_id: requestId, otp } }).unwrap();
+      if (result.success) {
+        toast.success(result.message || 'OTP verified successfully!');
+        navigate('/app/change-ownership/next-owner-info', {
+          state: {
+            requestId,
+            certificateNo: location.state?.certificateNo,
+            vehicleInfo: location.state?.vehicleInfo,
+            currentOwner: location.state?.currentOwner,
+            otpMethod,
+            otpVerified: true,
+            otpVerificationResponse: result,
+          },
+        });
+      } else {
+        toast.error(result.message || 'Invalid OTP. Please try again.');
+        setError('Incorrect OTP — please check and try again.');
+      }
+    } catch (err: any) {
+      const msg = err?.data?.message || err?.message || 'Failed to verify OTP.';
+      toast.error(msg);
+      setError(msg);
+    }
+  };
 
-        try {
-            const result = await verifyTransferOtp({
-                requestId,
-                data: {
-                    request_id: requestId,
-                    otp: values.otp,
-                },
-            }).unwrap();
+  return (
+    <main className="mx-auto w-full max-w-[720px] px-4">
+      <button
+        onClick={() => navigate('/app/change-ownership/review-information')}
+        className="mb-4 flex items-center gap-1 text-sm text-white/80 hover:text-white transition-colors"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        Back
+      </button>
 
-            console.log("OTP verification result:", result);
+      <div className="rounded-2xl bg-white shadow-xl overflow-hidden">
+        {/* Header */}
+        <div className="bg-slate-900 px-6 py-5">
+          <Stepper steps={STEPS} current={5} />
+          <h2 className="text-lg font-bold text-white">Verify OTP</h2>
+          <p className="text-sm text-slate-400 mt-1">
+            Enter the 6-digit code sent to the current owner via{' '}
+            <span className="text-white">{otpMethod || 'email/SMS'}</span>.
+          </p>
+        </div>
 
-            if (result.success) {
-                toast.success(result.message || "OTP verified successfully!");
-                // Navigate to next owner info page with all state including requestId
-                navigate("/app/change-ownership/next-owner-info", {
-                    state: {
-                        requestId: requestId, // Ensure requestId is explicitly passed
-                        certificateNo: location.state?.certificateNo,
-                        vehicleInfo: location.state?.vehicleInfo,
-                        currentOwner: location.state?.currentOwner,
-                        otpMethod: otpMethod,
-                        otpVerified: true,
-                        otpVerificationResponse: result,
-                    },
-                });
-            } else {
-                toast.error(result.message || "Invalid OTP. Please try again.");
-            }
-        } catch (error: any) {
-            console.error("OTP verification error:", error);
-            const errorMessage = error?.data?.message || error?.message || "Failed to verify OTP. Please try again.";
-            toast.error(errorMessage);
-        }
-    };
+        <div className="px-6 py-6 space-y-6">
+          {/* Current owner info */}
+          {currentOwner && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 space-y-2">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">OTP sent to</p>
+              <p className="text-sm font-medium text-slate-900">{currentOwner.name}</p>
+              {otpMethod === 'email' && currentOwner.email && (
+                <p className="flex items-center gap-1.5 text-sm text-slate-600">
+                  <Mail className="h-3.5 w-3.5 text-slate-400" />
+                  {currentOwner.email}
+                </p>
+              )}
+              {otpMethod === 'sms' && currentOwner.phone && (
+                <p className="flex items-center gap-1.5 text-sm text-slate-600">
+                  <Phone className="h-3.5 w-3.5 text-slate-400" />
+                  {currentOwner.phone}
+                </p>
+              )}
+            </div>
+          )}
 
-    const initialValues: OtpFormValues = {
-        otp: "",
-    };
-
-    return (
-        <main className="max-w-[720px] mx-auto h-full">
-            {/* Back Button */}
-            <div className="">
-                <Button
-                    onClick={handleGoBack}
-                    variant={"icon"}
-                    className="text-white flex items-center gap-2"
-                >
-                    <IoIosArrowBack size={25} />
-                    <span className="text-lg">Back</span>
-                </Button>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* OTP boxes */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-4 text-center">
+                Enter 6-digit code
+              </label>
+              <OtpInput value={otp} onChange={(v) => { setOtp(v); setError(''); }} length={6} />
+              {error ? (
+                <div className="mt-3 flex justify-center">
+                  <FormHelpText error>{error}</FormHelpText>
+                </div>
+              ) : (
+                <div className="mt-3 flex justify-center">
+                  <FormHelpText>Check your {otpMethod === 'email' ? 'inbox' : 'SMS messages'} for the code.</FormHelpText>
+                </div>
+              )}
             </div>
 
-            <section className="flex bg-white p-4 flex-col min-h-full justify-between">
-                <Formik
-                    initialValues={initialValues}
-                    onSubmit={handleSubmit}
-                    validationSchema={otpSchema}
-                >
-                    {({ isSubmitting }) => (
-                        <Form className="flex flex-col min-h-full justify-between">
-                            <div>
-                                {/* Header */}
-                                <div className="flex items-center gap-3 mt-6 mb-3">
-                                    <div className="bg-[#8D8989] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold">
-                                        6
-                                    </div>
-                                    <TypographyH5 className="text-lg md:text-xl font-semibold text-gray-900">
-                                        VERIFY OTP
-                                    </TypographyH5>
-                                </div>
+            {/* Resend hint */}
+            <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+              <p className="text-xs text-blue-700">
+                Didn't receive the code? Go back and resend via{' '}
+                {otpMethod === 'email' ? 'SMS' : 'email'}, or contact support.
+              </p>
+            </div>
 
-                                <TypographySmall className="text-gray-600 text-sm mb-2">
-                                    Enter the 6-digit OTP sent to the current owner via {otpMethod || "email/SMS"}.
-                                </TypographySmall>
-
-                                {/* Current Owner Info */}
-                                {currentOwner && (
-                                    <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                                        <TypographySmall className="font-semibold text-gray-900 mb-2">
-                                            OTP sent to:
-                                        </TypographySmall>
-                                        <div className="space-y-1">
-                                            <TypographySmall className="text-gray-700">
-                                                Name: {currentOwner.name}
-                                            </TypographySmall>
-                                            {otpMethod === 'email' && (
-                                                <TypographySmall className="text-gray-700">
-                                                    Email: {currentOwner.email}
-                                                </TypographySmall>
-                                            )}
-                                            {otpMethod === 'sms' && (
-                                                <TypographySmall className="text-gray-700">
-                                                    Phone: {currentOwner.phone}
-                                                </TypographySmall>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* OTP Input */}
-                                <div className="flex flex-col gap-6">
-                                    <FieldInput
-                                        className="rounded-none text-center text-2xl tracking-widest"
-                                        name="otp"
-                                        placeholder="000000"
-                                        maxLength={6}
-                                        type="text"
-                                        inputMode="numeric"
-                                        pattern="[0-9]*"
-                                        autoComplete="one-time-code"
-                                    />
-                                </div>
-
-                                {/* Resend OTP Info */}
-                                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                    <TypographySmall className="text-blue-800">
-                                        Didn't receive the OTP? Go back and try sending it again via {otpMethod === 'email' ? 'SMS' : 'email'} or contact support.
-                                    </TypographySmall>
-                                </div>
-                            </div>
-
-                            {/* Submit Button */}
-                            <div className="flex mt-10">
-                                <Button
-                                    type="submit"
-                                    disabled={isSubmitting || isLoading}
-                                    className="w-full mb-4 md:w-xl rounded-sm"
-                                >
-                                    {isSubmitting || isLoading ? "Verifying..." : "Verify OTP"}
-                                </Button>
-                            </div>
-                        </Form>
-                    )}
-                </Formik>
-            </section>
-        </main>
-    );
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={otp.length < 6 || isLoading}
+              className="w-full"
+            >
+              {isLoading ? 'Verifying…' : 'Verify OTP'}
+            </Button>
+          </form>
+        </div>
+      </div>
+    </main>
+  );
 }

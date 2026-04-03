@@ -1,82 +1,112 @@
-import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
-import { useNavigate } from "react-router-dom";
-import { Button } from "../../../shared/components";
+import { useNavigate } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, FileText, RefreshCw } from 'lucide-react';
+import { Stepper } from '@/shared/components/ui';
+
+// Steps for the full certificate-migration flow (shown at the top)
+const CERT_STEPS = [
+  { label: 'Service' },
+  { label: 'Enter VIN' },
+  { label: 'VIN Info' },
+  { label: 'Extra Info' },
+  { label: 'Upload' },
+  { label: 'Summary' },
+];
+
+const OWNERSHIP_STEPS = [
+  { label: 'Service' },
+  { label: 'Cert No.' },
+  { label: 'Vehicle' },
+  { label: 'New Owner' },
+  { label: 'Review' },
+  { label: 'OTP' },
+];
 
 const SelectOptionView = () => {
   const navigate = useNavigate();
 
-  const handleCertificateMigration = () => {
-    navigate("/app/certificate-request/enter-vin");
-  };
-
-  const handleChangeOfOwnership = () => {
-    navigate("/app/change-ownership/enter-cert-no");
-  };
-
-  const handleGoBack = () => {
-    navigate("/presentation");
-  };
-
-
   return (
-    <main className="max-w-[720px] mx-auto">
-      <Button onClick={handleGoBack} variant={'icon'} className="text-white items-start -ml-4"><IoIosArrowBack size={25} /><span className="text-lg">Back</span></Button>
-      <main className="items-center mx-auto flex flex-col justify-center">
+    <main className="mx-auto w-full max-w-[720px] px-4">
+      {/* Back */}
+      <button
+        onClick={() => navigate('/presentation')}
+        className="mb-4 flex items-center gap-1 text-sm text-white/80 hover:text-white transition-colors"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        Back
+      </button>
 
-        <div className="bg-white p-5 md:px-20 py-16">
-          {/* Section Header */}
-          <div className="mb-16"> <div className="flex items-center gap-3 mb-3">
-            <div className="bg-[#8D8989] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold">
-              1
-            </div>
-            <h2 className="text-lg md:text-xl font-semibold text-gray-900">
-              SERVICE OPTIONS
-            </h2>
-          </div>
-            <p className="text-gray-600 text-sm mb-8">
-              Please click on the desired option to begin.
-            </p></div>
-
-          {/* Options */}
-          <div className="space-y-4">
-            {/* Certificate Migration */}
-            <div
-              onClick={handleCertificateMigration}
-              className="group flex gap-4 items-center justify-between border-2 border-gray-200 rounded-lg p-5 hover:shadow-md hover:border-[#B41662] cursor-pointer transition"
-            >
-              <div>
-                <h3 className="text-base font-semibold text-gray-800 transition group-hover:text-[#B41662]">
-                  Certificate Migration
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  This option is for converting your current (existing) Proof of
-                  Ownership Certificate to the new digital certificate.
-                </p>
-              </div>
-              <IoIosArrowForward size={40} className="text-gray-400 border-l-2 transition group-hover:text-[#B41662]" />
-            </div>
-
-            {/* Change of Vehicle Ownership */}
-            <div
-              onClick={handleChangeOfOwnership}
-              className="group flex gap-4 items-center justify-between border-2 border-gray-200 rounded-lg p-5 hover:shadow-md hover:border-[#B41662] cursor-pointer transition"
-            >
-              <div>
-                <h3 className="text-base font-semibold text-gray-800 transition group-hover:text-[#B41662]">
-                  Change of Vehicle Ownership
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Use this to start the process of getting a Proof of Ownership
-                  Certificate for a new owner upon a vehicle sale or transfer.
-                </p>
-              </div>
-              <IoIosArrowForward size={40} className="text-gray-400 border-l-2 transition group-hover:text-[#B41662]" />
-            </div>
-          </div>
+      <div className="rounded-2xl bg-white shadow-xl overflow-hidden">
+        {/* Header */}
+        <div className="bg-slate-900 px-6 py-5">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">Step 1 of 6</p>
+          <h2 className="text-lg font-bold text-white">Choose a Service</h2>
+          <p className="text-sm text-slate-400 mt-1">Select the service you need to proceed.</p>
         </div>
-      </main>
+
+        <div className="px-6 py-6 space-y-6">
+          {/* Certificate Migration option */}
+          <ServiceCard
+            icon={FileText}
+            title="Certificate Migration"
+            description="Convert your existing paper Proof of Ownership Certificate to the new digital format."
+            steps={CERT_STEPS}
+            onClick={() => navigate('/app/certificate-request/enter-vin')}
+          />
+
+          {/* Change of Ownership option */}
+          <ServiceCard
+            icon={RefreshCw}
+            title="Change of Vehicle Ownership"
+            description="Transfer vehicle ownership to a new owner after a sale or gift, with OTP-verified consent."
+            steps={OWNERSHIP_STEPS}
+            onClick={() => navigate('/app/change-ownership/enter-cert-no')}
+          />
+        </div>
+      </div>
     </main>
   );
 };
+
+// ── Service option card ───────────────────────────────────────────────────────
+
+interface ServiceCardProps {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  steps: { label: string }[];
+  onClick: () => void;
+}
+
+function ServiceCard({ icon: Icon, title, description, steps, onClick }: ServiceCardProps) {
+  return (
+    <button
+      onClick={onClick}
+      className="group w-full text-left rounded-xl border-2 border-slate-200 hover:border-sage-700 hover:shadow-md transition-all p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-700"
+    >
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-sage-50 border border-sage-200 group-hover:bg-sage-100 transition-colors">
+            <Icon className="h-5 w-5 text-sage-700" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-slate-900 group-hover:text-sage-700 transition-colors">
+              {title}
+            </h3>
+            <p className="text-sm text-slate-500 mt-0.5 leading-snug">{description}</p>
+          </div>
+        </div>
+        <ChevronRight className="h-5 w-5 flex-shrink-0 text-slate-400 group-hover:text-sage-700 transition-colors mt-1" />
+      </div>
+
+      {/* Mini stepper preview */}
+      <div className="pt-3 border-t border-slate-100">
+        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">
+          {steps.length} steps
+        </p>
+        <Stepper steps={steps} current={0} />
+      </div>
+    </button>
+  );
+}
 
 export { SelectOptionView };
