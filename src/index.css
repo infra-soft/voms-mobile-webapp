@@ -2,6 +2,24 @@
 
 @plugin "tailwindcss-animate";
 
+/* ── Sage & Slate Design System ── */
+@theme {
+  /* Sage palette */
+  --color-sage-50:  #f4f9f6;
+  --color-sage-100: #e8f3ec;
+  --color-sage-200: #cce5d5;
+  --color-sage-300: #a3cfb5;
+  --color-sage-400: #7ab891;
+  --color-sage-500: #5a9970;
+  --color-sage-600: #4a8060;
+  --color-sage-700: #3d6b50;
+  --color-sage-800: #2d4a39;
+  --color-sage-900: #1a3327;
+
+  /* Font */
+  --font-sans: 'Inter', ui-sans-serif, system-ui;
+}
+
 /* Removed unsupported @custom-variant dark (&:is(.dark *)); */
 
 :root {
@@ -146,7 +164,7 @@
 }
 
 * {
-  font-family: "Nunito Sans", sans-serif;
+  font-family: 'Inter', 'Nunito Sans', sans-serif;
 }
 
 /* Left gradient border */
@@ -173,4 +191,50 @@
   font-family: "DM Serif Text", serif;
   font-weight: 600;
   font-style: normal;
+}
+
+/* ── Semantic utility classes ── */
+@layer utilities {
+  .bg-page         { @apply bg-slate-50; }
+  .bg-sidebar      { @apply bg-slate-900; }
+  .bg-card         { @apply bg-white; }
+  .bg-action       { @apply bg-sage-700; }
+  .bg-action-hover { @apply bg-sage-800; }
+
+  .text-heading    { @apply text-slate-900; }
+  .text-body       { @apply text-slate-700; }
+  .text-muted      { @apply text-slate-500; }
+  .text-action     { @apply text-sage-700; }
+
+  .border-subtle   { @apply border-slate-200; }
+  .border-action   { @apply border-sage-700; }
+
+  .status-approved { @apply bg-sage-100 text-sage-800 ring-1 ring-sage-300; }
+  .status-pending  { @apply bg-amber-50 text-amber-800 ring-1 ring-amber-200; }
+  .status-rejected { @apply bg-red-50 text-red-700 ring-1 ring-red-200; }
+  .status-urgent   { @apply bg-red-100 text-red-800 ring-1 ring-red-300; }
+  .status-draft    { @apply bg-slate-100 text-slate-600 ring-1 ring-slate-300; }
+}
+
+/* ── CSS variable bridge for non-Tailwind code ── */
+:root {
+  --color-sage-50:  #f4f9f6;
+  --color-sage-100: #e8f3ec;
+  --color-sage-200: #cce5d5;
+  --color-sage-300: #a3cfb5;
+  --color-sage-400: #7ab891;
+  --color-sage-500: #5a9970;
+  --color-sage-600: #4a8060;
+  --color-sage-700: #3d6b50;
+  --color-sage-800: #2d4a39;
+  --color-sage-900: #1a3327;
+  --color-slate-50:  #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
 }
