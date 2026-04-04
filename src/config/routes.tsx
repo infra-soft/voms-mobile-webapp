@@ -14,6 +14,7 @@ import AdditionalInformation from "../domains/certificate_request/components/add
 import UploadDocument from "../domains/certificate_request/components/upload_document";
 import InformationSummary from "../domains/certificate_request/components/info_summary";
 import PaymentCallback from "../domains/certificate_request/components/payment_callback";
+import RequestStatusTracker from "../domains/certificate_request/components/RequestStatusTracker";
 import { ChangeOwnershipView } from "../domains/change_ownership/views/change_ownership.view";
 import EnterCertNo from "../domains/change_ownership/components/enter_cert_no";
 import VehicleInformation from "../domains/change_ownership/components/vehicle_info";
@@ -35,6 +36,11 @@ const router = createBrowserRouter([
   {
     path: "/payment/callback",
     element: <PaymentCallback />,
+    errorElement: <ErrorFallback />,
+  },
+  {
+    path: "/track",
+    element: <RequestStatusTracker />,
     errorElement: <ErrorFallback />,
   },
   {
