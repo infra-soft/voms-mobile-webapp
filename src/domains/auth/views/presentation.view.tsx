@@ -58,13 +58,21 @@ export default function PresentationView() {
           seamless vehicle ownership transfers.
         </p>
 
-        <button
-          onClick={() => navigate('/select-option')}
-          className="mt-7 inline-flex items-center gap-2 rounded-xl bg-sage-700 hover:bg-sage-800 px-7 py-3.5 text-base font-semibold text-white shadow-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
-        >
-          Get Started
-          <ArrowRight className="h-5 w-5" />
-        </button>
+        <div className="mt-7 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button
+            onClick={() => navigate('/select-option')}
+            className="inline-flex items-center gap-2 rounded-xl bg-sage-700 hover:bg-sage-800 px-7 py-3.5 text-base font-semibold text-white shadow-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+          >
+            Get Started
+            <ArrowRight className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => navigate('/track')}
+            className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 px-7 py-3.5 text-base font-semibold text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+          >
+            Track Request
+          </button>
+        </div>
       </motion.section>
 
       {/* Feature cards */}

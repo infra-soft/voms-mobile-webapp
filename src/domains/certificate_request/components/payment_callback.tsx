@@ -1,235 +1,235 @@
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { Button, TypographyH5, TypographySmall } from "../../../shared/components";
-import { useEffect, useState } from "react";
-import Lottie from "lottie-react";
-import celebrationAnimation from "../../../assets/animation/celebration.json";
-import { toast } from "sonner";
-import { useLazyVerifyPaymentQuery } from "../api/certificate.api";
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import Lottie from 'lottie-react';
+import { CheckCircle2, XCircle, Loader2, Copy, RefreshCw, Home } from 'lucide-react';
+import { toast } from 'sonner';
+import { StatusTimeline, Button } from '@/shared/components/ui';
+import type { TimelineStage } from '@/shared/components/ui';
+import celebrationAnimation from '../../../assets/animation/celebration.json';
+import { useLazyVerifyPaymentQuery } from '../api/certificate.api';
+
+// ── Timeline builder ──────────────────────────────────────────────────────────
+
+function buildTimeline(
+  paymentStatus: 'success' | 'failed' | 'verifying',
+  requestStatus: string,
+): TimelineStage[] {
+  const paid = paymentStatus === 'success';
+  const failed = paymentStatus === 'failed';
+
+  return [
+    {
+      label: 'Request Submitted',
+      description: 'Your migration request was received.',
+      status: 'done',
+    },
+    {
+      label: 'Payment',
+      description: paid ? 'Payment confirmed.' : failed ? 'Payment could not be verified.' : 'Awaiting confirmation…',
+      status: paid ? 'done' : failed ? 'failed' : 'active',
+    },
+    {
+      label: 'Under Review',
+      description: 'A VOMS officer is reviewing your documents.',
+      status: paid
+        ? requestStatus === 'processing' || requestStatus === 'approved' || requestStatus === 'completed'
+          ? 'done'
+          : 'active'
+        : 'pending',
+    },
+    {
+      label: 'Certificate Issued',
+      description: 'Your digital certificate is ready.',
+      status: paid && (requestStatus === 'approved' || requestStatus === 'completed') ? 'done' : 'pending',
+    },
+  ];
+}
+
+// ── Copy button ───────────────────────────────────────────────────────────────
+
+function CopyField({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(value).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  return (
+    <div className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
+      <span className="text-sm text-slate-500">{label}</span>
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-mono text-slate-800 break-all text-right max-w-[180px]">{value || '—'}</span>
+        {value && (
+          <button onClick={copy} className="text-slate-400 hover:text-sage-700 transition-colors" aria-label={`Copy ${label}`}>
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+        )}
+        {copied && <span className="text-xs text-sage-700 font-medium">Copied!</span>}
+      </div>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function PaymentCallback() {
-    const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
-    const [verifyPayment, { isLoading: isVerifying }] = useLazyVerifyPaymentQuery();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [verifyPayment, { isLoading: isVerifying }] = useLazyVerifyPaymentQuery();
 
-    const [paymentDetails, setPaymentDetails] = useState({
-        requestId: "",
-        trxref: "",
-        reference: "",
-    });
-    const [paymentStatus, setPaymentStatus] = useState<"success" | "failed" | "verifying">("verifying");
+  const [status, setStatus] = useState<'success' | 'failed' | 'verifying'>('verifying');
+  const [requestStatus, setRequestStatus] = useState('pending');
+  const [details, setDetails] = useState({ requestId: '', trxref: '', reference: '' });
 
-    useEffect(() => {
-        const requestId = searchParams.get("requestId");
-        const trxref = searchParams.get("trxref");
-        const reference = searchParams.get("reference");
+  useEffect(() => {
+    const requestId = searchParams.get('requestId') ?? '';
+    const trxref = searchParams.get('trxref') ?? '';
+    const reference = searchParams.get('reference') ?? '';
+    setDetails({ requestId, trxref, reference });
 
-        console.log("Payment Callback - URL Params:", { requestId, trxref, reference });
-
-        if (requestId && trxref && reference) {
-            setPaymentDetails({
-                requestId,
-                trxref,
-                reference,
-            });
-            // Verify payment with the backend
-            verifyPaymentStatus(requestId);
-        } else {
-            console.error("Missing required URL parameters");
-            setPaymentStatus("failed");
-            toast.error("Invalid payment callback - missing parameters");
-        }
-    }, [searchParams, verifyPayment]);
-
-    const verifyPaymentStatus = async (requestId: string) => {
-        try {
-            console.log("Verifying payment for Request ID:", requestId);
-
-            const result = await verifyPayment(requestId).unwrap();
-
-            console.log("Payment verification result:", result);
-
-            if (result.success === true && result.paymentStatus === "successful") {
-                setPaymentStatus("success");
-                toast.success("Payment verified successfully!");
-            } else {
-                setPaymentStatus("failed");
-                toast.error(result.message || "Payment verification failed");
-            }
-        } catch (error: any) {
-            console.error("Payment verification error:", error);
-            console.error("Error details:", {
-                status: error?.status,
-                data: error?.data,
-                message: error?.message
-            });
-            setPaymentStatus("failed");
-            toast.error(error?.data?.message || "Failed to verify payment status");
-        }
-    }; const handleGoHome = () => {
-        navigate("/select-option");
-    };
-
-    // Show loading state while verifying
-    if (isVerifying || paymentStatus === "verifying") {
-        return (
-            <div className="min-h-screen bg-linear-to-br from-blue-50 to-gray-50 flex items-center justify-center p-4">
-                <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8 text-center">
-                    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600 mx-auto mb-4"></div>
-                    <TypographyH5 className="text-xl font-semibold text-gray-900 mb-2">
-                        Verifying Payment...
-                    </TypographyH5>
-                    <TypographySmall className="text-gray-600">
-                        Please wait while we confirm your payment
-                    </TypographySmall>
-                </div>
-            </div>
-        );
+    if (requestId && trxref && reference) {
+      verify(requestId);
+    } else {
+      setStatus('failed');
+      toast.error('Invalid payment callback — missing parameters');
     }
+  }, []);
 
-    // Show failure state
-    if (paymentStatus === "failed") {
-        return (
-            <div className="min-h-screen bg-linear-to-br from-red-50 to-gray-50 flex items-center justify-center p-4">
-                <div className="max-w-md w-full bg-white rounded-lg shadow-xl overflow-hidden">
-                    <div className="bg-linear-to-r from-red-500 to-red-600 p-8 text-center">
-                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg
-                                className="w-12 h-12 text-red-600"
-                                fill="none"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </div>
-                        <TypographyH5 className="text-2xl md:text-3xl font-bold text-white mb-2">
-                            Payment Verification Failed
-                        </TypographyH5>
-                        <TypographySmall className="text-red-100 text-base">
-                            Unable to verify your payment. Please contact support.
-                        </TypographySmall>
-                    </div>
-                    <div className="p-8">
-                        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
-                            <p className="text-sm text-red-700">
-                                If you were charged, please contact support with your transaction reference: {paymentDetails.trxref}
-                            </p>
-                        </div>
-                        <Button
-                            onClick={handleGoHome}
-                            className="w-full bg-green-600 hover:bg-green-700 text-white rounded-md py-3 font-semibold transition"
-                        >
-                            Back to Home
-                        </Button>
-                    </div>
-                </div>
-            </div>
-        );
+  const verify = async (requestId: string) => {
+    try {
+      const result = await verifyPayment(requestId).unwrap();
+      if (result.success && result.paymentStatus === 'successful') {
+        setStatus('success');
+        setRequestStatus(result.requestStatus ?? 'pending');
+        toast.success('Payment verified!');
+      } else {
+        setStatus('failed');
+        toast.error(result.message || 'Payment verification failed');
+      }
+    } catch (err: any) {
+      setStatus('failed');
+      toast.error(err?.data?.message || 'Failed to verify payment');
     }
+  };
 
-    // Show success state
+  const timeline = buildTimeline(status, requestStatus);
+
+  // ── Verifying ──
+  if (isVerifying || status === 'verifying') {
     return (
-        <div className="min-h-screen bg-linear-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
-            <div className="max-w-2xl w-full bg-white rounded-lg shadow-xl overflow-hidden">
-                {/* Success Animation */}
-                <div className="bg-linear-to-r from-green-500 to-green-600 p-8 text-center">
-                    <div className="w-32 h-32 mx-auto mb-4">
-                        <Lottie
-                            animationData={celebrationAnimation}
-                            loop={false}
-                            className="w-full h-full"
-                        />
-                    </div>
-                    <div className="text-white">
-                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg
-                                className="w-12 h-12 text-green-600"
-                                fill="none"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path d="M5 13l4 4L19 7"></path>
-                            </svg>
-                        </div>
-                        <TypographyH5 className="text-2xl md:text-3xl font-bold text-white mb-2">
-                            Payment Successful!
-                        </TypographyH5>
-                        <TypographySmall className="text-green-100 text-base">
-                            Your certificate migration request has been submitted successfully
-                        </TypographySmall>
-                    </div>
-                </div>
-
-                {/* Payment Details */}
-                <div className="p-8">
-                    <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Transaction Details</h3>
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-center border-b border-gray-200 pb-2">
-                                <span className="text-gray-600 font-medium">Request ID:</span>
-                                <span className="text-gray-900 font-mono text-sm break-all ml-4">
-                                    {paymentDetails.requestId || "N/A"}
-                                </span>
-                            </div>
-                            <div className="flex justify-between items-center border-b border-gray-200 pb-2">
-                                <span className="text-gray-600 font-medium">Migration Status:</span>
-                                <span className="font-mono text-sm break-all ml-4 capitalize text-orange-600">
-                                    pending
-                                </span>
-                            </div>
-
-                        </div>
-                    </div>
-
-                    {/* Information Message */}
-                    <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
-                        <div className="flex">
-                            <div className="shrink-0">
-                                <svg
-                                    className="h-5 w-5 text-blue-500"
-                                    fill="currentColor"
-                                    viewBox="0 0 20 20"
-                                >
-                                    <path
-                                        fillRule="evenodd"
-                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                        clipRule="evenodd"
-                                    />
-                                </svg>
-                            </div>
-                            <div className="ml-3">
-                                <p className="text-sm text-blue-700">
-                                    Your certificate will be processed and you will receive a notification once it's ready.
-                                    Please keep your request ID for future reference.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-4">
-                        <Button
-                            onClick={handleGoHome}
-                            className="w-full sm:flex-1 bg-green-600 hover:bg-green-700 text-white rounded-md py-3 font-semibold transition"
-                        >
-                            Back to Home
-                        </Button>
-                        {/* <Button
-                            onClick={() => window.print()}
-                            variant="default"
-                            className="w-full sm:flex-1 border-2 border-primary-600 text-primary-600 hover:bg-primary-50 rounded-md py-3 font-semibold transition"
-                        >
-                            Print Receipt
-                        </Button> */}
-                    </div>
-                </div>
-            </div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl p-8 text-center">
+          <Loader2 className="h-12 w-12 text-sage-700 animate-spin mx-auto mb-4" />
+          <h2 className="text-lg font-semibold text-slate-900">Verifying Payment</h2>
+          <p className="text-sm text-slate-500 mt-1">Please wait — this takes just a moment.</p>
         </div>
+      </div>
     );
+  }
+
+  // ── Failed ──
+  if (status === 'failed') {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md rounded-2xl bg-white shadow-xl overflow-hidden">
+          {/* Red header */}
+          <div className="bg-red-600 px-6 py-8 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white">
+              <XCircle className="h-9 w-9 text-red-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-white">Payment Failed</h2>
+            <p className="text-sm text-red-100 mt-1">We couldn't confirm your payment.</p>
+          </div>
+
+          <div className="px-6 py-6 space-y-5">
+            {/* Recovery card */}
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4">
+              <p className="text-sm font-semibold text-amber-800 mb-1">Were you charged?</p>
+              <p className="text-xs text-amber-700 leading-relaxed">
+                If money was deducted, please contact VOMS support and quote your transaction reference below.
+                No duplicate charge will occur if you retry.
+              </p>
+            </div>
+
+            {/* Transaction ref */}
+            {details.trxref && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <CopyField label="Transaction Ref" value={details.trxref} />
+                {details.requestId && <CopyField label="Request ID" value={details.requestId} />}
+              </div>
+            )}
+
+            {/* Timeline */}
+            <StatusTimeline stages={timeline} />
+
+            {/* Actions */}
+            <div className="flex flex-col gap-3 pt-2">
+              <Button
+                variant="primary"
+                onClick={() => { setStatus('verifying'); verify(details.requestId); }}
+                className="w-full"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry Verification
+              </Button>
+              <Button variant="secondary" onClick={() => navigate('/select-option')} className="w-full">
+                <Home className="h-4 w-4 mr-2" />
+                Back to Home
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Success ──
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl overflow-hidden">
+        {/* Sage header with Lottie */}
+        <div className="bg-sage-700 px-6 py-8 text-center">
+          <div className="mx-auto mb-2 h-24 w-24">
+            <Lottie animationData={celebrationAnimation} loop={false} className="h-full w-full" />
+          </div>
+          <div className="flex justify-center mb-3">
+            <CheckCircle2 className="h-10 w-10 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-white">Payment Successful</h2>
+          <p className="text-sm text-sage-200 mt-1">
+            Your certificate migration request has been submitted.
+          </p>
+        </div>
+
+        <div className="px-6 py-6 space-y-5">
+          {/* Transaction details */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-1">
+            <CopyField label="Request ID" value={details.requestId} />
+            <CopyField label="Transaction Ref" value={details.trxref} />
+            <CopyField label="Status" value={requestStatus} />
+          </div>
+
+          {/* Info banner */}
+          <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+            <p className="text-xs text-blue-700 leading-relaxed">
+              Your certificate is now being processed. You'll receive a notification once it's ready.
+              Keep your Request ID safe for tracking.
+            </p>
+          </div>
+
+          {/* Status timeline */}
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Request Progress</p>
+            <StatusTimeline stages={timeline} />
+          </div>
+
+          <Button variant="primary" onClick={() => navigate('/select-option')} className="w-full">
+            <Home className="h-4 w-4 mr-2" />
+            Back to Home
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 }
