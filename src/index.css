@@ -238,3 +238,21 @@
   --color-slate-800: #1e293b;
   --color-slate-900: #0f172a;
 }
+
+/* ── Print styles (certificate & payment pages) ── */
+@media print {
+  /* Hide navigation chrome */
+  nav, .no-print { display: none !important; }
+
+  /* Remove shadows for clean print */
+  * {
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body { background: white; }
+
+  /* Keep cards and timeline together on the same page */
+  .print-break-avoid { page-break-inside: avoid; }
+}

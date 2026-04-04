@@ -108,7 +108,7 @@ export default function VerifyOtp() {
               <label className="block text-sm font-medium text-slate-700 mb-4 text-center">
                 Enter 6-digit code
               </label>
-              <OtpInput value={otp} onChange={(v) => { setOtp(v); setError(''); }} length={6} />
+              <OtpInput value={otp} onChange={(v: string) => { setOtp(v); setError(''); }} length={6} />
               {error ? (
                 <div className="mt-3 flex justify-center">
                   <FormHelpText error>{error}</FormHelpText>
