@@ -4,6 +4,7 @@ import { ChevronLeft, CreditCard, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { Stepper, Button } from '@/shared/components/ui';
 import { useInitiateMigrationPaymentMutation } from '../api';
+import { lgas } from '../data';
 
 const STEPS = [
   { label: 'Service' },
@@ -47,6 +48,8 @@ export default function InformationSummary() {
   const navigate = useNavigate();
   const location = useLocation();
   const { requestId, vin, vehicleInfo, additionalInfo } = location.state || {};
+
+  const lgaName = lgas.find((l) => l.id === additionalInfo?.lga)?.name ?? additionalInfo?.lga;
 
   const [confirmed, setConfirmed] = useState(false);
   const [initiatePayment, { isLoading }] = useInitiateMigrationPaymentMutation();
@@ -103,7 +106,7 @@ export default function InformationSummary() {
           {/* Additional info */}
           <SectionCard title="Additional Information">
             <InfoRow label="State" value={additionalInfo?.state} />
-            <InfoRow label="LGA" value={additionalInfo?.lga} />
+            <InfoRow label="LGA" value={lgaName} />
             <InfoRow label="Certificate No." value={additionalInfo?.certificateNo} />
             <InfoRow label="Issued Date" value={additionalInfo?.issuedDate} />
             <InfoRow label="Plate No." value={additionalInfo?.plateNo} />

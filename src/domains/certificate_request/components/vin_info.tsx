@@ -1,41 +1,47 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Button, TypographyH5, TypographySmall } from "../../../shared/components";
-import { IoIosArrowBack } from "react-icons/io";
 import { useState, useEffect } from "react";
+import { ChevronLeft, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
+import { Stepper, Button } from "@/shared/components/ui";
+
+const STEPS = [
+  { label: 'Service' },
+  { label: 'Enter VIN' },
+  { label: 'VIN Info' },
+  { label: 'Extra Info' },
+  { label: 'Upload' },
+  { label: 'Summary' },
+];
+
+function InfoRow({ label, value }: { label: string; value?: string }) {
+  if (!value) return null;
+  return (
+    <div className="flex justify-between items-start py-2.5 border-b border-slate-100 last:border-0 gap-4">
+      <span className="text-sm text-slate-500 flex-shrink-0">{label}</span>
+      <span className="text-sm font-medium text-slate-800 text-right break-words">{value}</span>
+    </div>
+  );
+}
 
 export default function VinInformation() {
   const navigate = useNavigate();
   const location = useLocation();
   const { vin, vehicleInfo, fullResponse } = location.state || {};
 
-  // Extract vehicle info from the response structure
   const displayVehicleInfo = vehicleInfo || fullResponse?.vehicleInfo || {};
   const displayVin = vin || fullResponse?.vin || 'N/A';
-
-  console.log("=== VIN INFO DEBUG ===");
-  console.log("Full location.state:", location.state);
-  console.log("Display VIN:", displayVin);
-  console.log("Display Vehicle Info:", displayVehicleInfo);
-  console.log("Full Response:", fullResponse);
-  console.log("====================");
 
   const [checkboxes, setCheckboxes] = useState({
     correctVehicle: false,
     isOwner: false,
   });
 
-  // Redirect back if no VIN data is available
   useEffect(() => {
     if (!displayVin || displayVin === 'N/A') {
       toast.error("No VIN information available");
       navigate("/app/certificate-request/enter-vin");
     }
   }, [displayVin, navigate]);
-
-  const handleGoBack = () => {
-    navigate("/app/certificate-request/enter-vin");
-  };
 
   const handleCheckboxChange = (field: string) => {
     setCheckboxes((prev) => ({
@@ -49,210 +55,104 @@ export default function VinInformation() {
       toast.error("Please confirm both statements to continue");
       return;
     }
-    // Navigate to next step with requestId from the API response
     navigate("/app/certificate-request/addtional-information", {
       state: {
         vin: displayVin,
         vehicleInfo: displayVehicleInfo,
         fullResponse,
-        requestId: fullResponse?.requestId // Pass the UUID requestId
-      }
+        requestId: fullResponse?.requestId,
+      },
     });
-    toast.success("Information confirmed!");
   };
 
+  const allValid = checkboxes.correctVehicle && checkboxes.isOwner;
+
   return (
-    <div className="flex flex-col max-w-[720px] mx-auto h-full">
-      {/* Back Button */}
-      <div className="">
-        <Button
-          onClick={handleGoBack}
-          variant={"icon"}
-          className="text-white flex items-center gap-2"
-        >
-          <IoIosArrowBack size={25} />
-          <span className="text-lg">Back</span>
-        </Button>
-      </div>
+    <main className="mx-auto w-full max-w-[720px] px-4">
+      <button
+        onClick={() => navigate('/app/certificate-request/enter-vin')}
+        className="mb-4 flex items-center gap-1 text-sm text-white/80 hover:text-white transition-colors"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        Back
+      </button>
 
-      <div className="bg-white p-4 min-h-screen space-y-6">
-        {/* Content */}
-        <div className="grow">
-          {/* Section Header */}
-          <div className="flex items-center gap-3 mt-6 mb-3">
-            <div className="bg-[#8D8989] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold">
-              3
-            </div>
-            <TypographyH5 className="text-lg md:text-xl font-semibold text-gray-900">
-              VIN INFORMATION
-            </TypographyH5>
-          </div>
+      <div className="rounded-2xl bg-white shadow-xl overflow-hidden">
+        {/* Header */}
+        <div className="bg-slate-900 px-6 py-5">
+          <Stepper steps={STEPS} current={2} />
+          <h2 className="text-lg font-bold text-white">VIN Information</h2>
+          <p className="text-sm text-slate-400 mt-1">
+            Please verify the vehicle information below is correct.
+          </p>
+        </div>
 
-          <TypographySmall className="text-gray-600 text-sm mb-6">
-            Please verify the vehicle information below is correct
-          </TypographySmall>
-
-          {/* Success Message if available */}
+        <div className="px-6 py-6 space-y-5">
+          {/* Success banner */}
           {fullResponse?.success && (
-            <div className="bg-green-50 border border-green-200 rounded-sm p-3 mb-4">
-              <p className="text-green-800 text-sm font-semibold">✓ VIN Verified Successfully</p>
-              {fullResponse?.message && (
-                <p className="text-green-700 text-xs mt-1">{fullResponse.message}</p>
-              )}
+            <div className="flex items-center gap-2 rounded-xl bg-sage-50 border border-sage-200 px-4 py-3">
+              <CheckCircle className="h-4 w-4 text-sage-700 flex-shrink-0" />
+              <p className="text-sm font-medium text-sage-800">VIN verified successfully</p>
             </div>
           )}
 
-          {/* Request ID Display */}
-          {fullResponse?.requestId && (
-            <div className="bg-blue-50 border border-blue-200 rounded-sm p-3 mb-4">
-              <p className="text-blue-800 text-sm">
-                <span className="font-semibold">Request ID:</span> {fullResponse.requestId}
-              </p>
+          {/* Vehicle info card */}
+          <div className="rounded-xl border border-slate-200 overflow-hidden">
+            <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200">
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Vehicle Details</p>
             </div>
-          )}          {/* Vehicle Information Card */}
-          <div className="bg-gray-50 border border-gray-200 rounded-sm p-4 mb-8">
-            <div className="space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center border-b border-gray-200 pb-2">
-                <span className="font-semibold text-gray-700 w-32">VIN:</span>
-                <span className="text-gray-900 break-all">{displayVin}</span>
-              </div>
-
-              {displayVehicleInfo?.make && (
-                <div className="flex flex-col sm:flex-row sm:items-center border-b border-gray-200 pb-2">
-                  <span className="font-semibold text-gray-700 w-32">Make:</span>
-                  <span className="text-gray-900">{displayVehicleInfo.make}</span>
-                </div>
-              )}
-
-              {displayVehicleInfo?.model && (
-                <div className="flex flex-col sm:flex-row sm:items-center border-b border-gray-200 pb-2">
-                  <span className="font-semibold text-gray-700 w-32">Model:</span>
-                  <span className="text-gray-900">{displayVehicleInfo.model}</span>
-                </div>
-              )}
-
-              {displayVehicleInfo?.year && (
-                <div className="flex flex-col sm:flex-row sm:items-center border-b border-gray-200 pb-2">
-                  <span className="font-semibold text-gray-700 w-32">Year:</span>
-                  <span className="text-gray-900">{displayVehicleInfo.year}</span>
-                </div>
-              )}
-
-              {displayVehicleInfo?.color && (
-                <div className="flex flex-col sm:flex-row sm:items-center border-b border-gray-200 pb-2">
-                  <span className="font-semibold text-gray-700 w-32">Color:</span>
-                  <span className="text-gray-900">{displayVehicleInfo.color}</span>
-                </div>
-              )}
-
-              {displayVehicleInfo?.vehicle_type && (
-                <div className="flex flex-col sm:flex-row sm:items-center border-b border-gray-200 pb-2">
-                  <span className="font-semibold text-gray-700 w-32">Vehicle Type:</span>
-                  <span className="text-gray-900">{displayVehicleInfo.vehicle_type}</span>
-                </div>
-              )}
-
-              {displayVehicleInfo?.type && (
-                <div className="flex flex-col sm:flex-row sm:items-center">
-                  <span className="font-semibold text-gray-700 w-32">Type:</span>
-                  <span className="text-gray-900">{displayVehicleInfo.type}</span>
-                </div>
-              )}
-
-              {/* Display any additional fields from the API response */}
-              {displayVehicleInfo && Object.keys(displayVehicleInfo).map((key) => {
-                if (!['year', 'make', 'model', 'type', 'color', 'vehicle_type'].includes(key) && displayVehicleInfo[key]) {
-                  return (
-                    <div key={key} className="flex flex-col sm:flex-row sm:items-center border-t border-gray-200 pt-2">
-                      <span className="font-semibold text-gray-700 w-32 capitalize">
-                        {key.replace(/_/g, ' ')}:
-                      </span>
-                      <span className="text-gray-900">{displayVehicleInfo[key]}</span>
-                    </div>
-                  );
-                }
-                return null;
-              })}
+            <div className="px-4 py-1">
+              <InfoRow label="VIN" value={displayVin} />
+              <InfoRow label="Make" value={displayVehicleInfo?.make} />
+              <InfoRow label="Model" value={displayVehicleInfo?.model} />
+              <InfoRow label="Year" value={String(displayVehicleInfo?.year ?? '')} />
+              <InfoRow label="Color" value={displayVehicleInfo?.color} />
+              <InfoRow label="Vehicle Type" value={displayVehicleInfo?.vehicle_type ?? displayVehicleInfo?.type} />
             </div>
           </div>
 
-          {/* Confirmation Checkboxes */}
-          <div className="border-2 border-primary-600 rounded-sm p-4 space-y-4">
-            {/* Checkbox 1 */}
-            <div className="flex items-center gap-3">
+          {/* Confirmation checkboxes */}
+          <div className="space-y-3">
+            {[
+              { key: 'correctVehicle', label: 'This is the correct vehicle to be processed.' },
+              { key: 'isOwner', label: 'I am the owner of this vehicle or the authorised representative of the owner.' },
+            ].map(({ key, label }) => (
               <button
-                onClick={() => handleCheckboxChange("correctVehicle")}
-                className="shrink-0 w-6 h-6 rounded border-2 border-primary-600 flex items-center justify-center cursor-pointer mt-0.5"
-                style={{
-                  backgroundColor: checkboxes.correctVehicle ? "#B41662" : "white",
-                }}
+                key={key}
+                type="button"
+                onClick={() => handleCheckboxChange(key)}
+                className={`flex items-start gap-3 w-full text-left rounded-xl border-2 px-4 py-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-700 ${
+                  checkboxes[key as keyof typeof checkboxes]
+                    ? 'border-sage-700 bg-sage-50'
+                    : 'border-slate-200 hover:border-sage-400'
+                }`}
               >
-                {checkboxes.correctVehicle && (
-                  <svg
-                    className="w-4 h-4 text-white"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M5 13l4 4L19 7"></path>
-                  </svg>
-                )}
+                <div className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors ${
+                  checkboxes[key as keyof typeof checkboxes]
+                    ? 'border-sage-700 bg-sage-700'
+                    : 'border-slate-300 bg-white'
+                }`}>
+                  {checkboxes[key as keyof typeof checkboxes] && (
+                    <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <span className="text-sm text-slate-700">{label}</span>
               </button>
-              <label
-                onClick={() => handleCheckboxChange("correctVehicle")}
-                className="text-sm text-gray-900 cursor-pointer"
-              >
-                This is the correct vehicle to be processed
-              </label>
-            </div>
-
-            {/* Checkbox 2 */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => handleCheckboxChange("isOwner")}
-                className="shrink-0 w-6 h-6 rounded border-2 border-primary-600 flex items-center justify-center cursor-pointer mt-0.5"
-                style={{
-                  backgroundColor: checkboxes.isOwner ? "#B41662" : "white",
-                }}
-              >
-                {checkboxes.isOwner && (
-                  <svg
-                    className="w-4 h-4 text-white"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M5 13l4 4L19 7"></path>
-                  </svg>
-                )}
-              </button>
-              <label
-                onClick={() => handleCheckboxChange("isOwner")}
-                className="text-sm text-gray-900 cursor-pointer"
-              >
-                I am the owner of this vehicle or the authorized representative of the owner
-              </label>
-            </div>
+            ))}
           </div>
-        </div>
 
-        {/* Continue Button */}
-        <div className="shrink-0 pb-6 pt-6">
           <Button
+            variant="primary"
             onClick={handleContinue}
-            className="text-white w-full md:w-xl rounded-sm transition"
-            disabled={!checkboxes.correctVehicle || !checkboxes.isOwner}
+            disabled={!allValid}
+            className="w-full"
           >
             Continue
           </Button>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
